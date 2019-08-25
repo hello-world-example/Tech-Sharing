@@ -6,8 +6,10 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportResource;
 
 @SpringBootApplication
-@ImportResource(locations = "classpath*:/applicationContext-jade.xml")
-@ComponentScan(basePackages = "xyz.kail")
+@ImportResource(locations = {
+        "classpath*:/applicationContext-jade.xml",
+        "classpath*:/jdbc_druid.xml",
+})
 public class App {
 
     public static void main(String[] args) {

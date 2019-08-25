@@ -36,6 +36,11 @@
         </dependency>
 
         <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.54chen</groupId>
             <artifactId>paoding-rose-jade</artifactId>
         </dependency>

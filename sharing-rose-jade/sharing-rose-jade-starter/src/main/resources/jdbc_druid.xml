@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       default-lazy-init="false">
+
+    <bean id="abstractDruidDataSource"
+          class="com.alibaba.druid.pool.DruidDataSource"
+          init-method="init"
+          destroy-method="close"
+          abstract="true">
+
+        <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+        <property name="username" value="root"/>
+        <property name="password" value="1723"/>
+
+    </bean>
+
+    <bean id="jade.dataSource.xyz.kail.sharing.rose.jade.starter.dao" parent="abstractDruidDataSource" primary="true">
+        <property name="url" value="${test1.jdbc.url}"/>
+    </bean>
+
+<alias name="jade.dataSource.xyz.kail.sharing.rose.jade.starter.dao"
+       alias="jade.dataSource.xyz.kail.sharing.rose.jade.repo.dao"/>
+
+
+</beans>
