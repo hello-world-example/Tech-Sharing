@@ -16,12 +16,53 @@
 
     </bean>
 
-    <bean id="jade.dataSource.xyz.kail.sharing.rose.jade.starter.dao" parent="abstractDruidDataSource" primary="true">
-        <property name="url" value="${test1.jdbc.url}"/>
+    <bean id="jade.dataSource.xyz.kail.sharing.rose.jade.starter.dao" parent="abstractDruidDataSource">
+        <property name="url" value="${test.jdbc.url}"/>
     </bean>
-
-<alias name="jade.dataSource.xyz.kail.sharing.rose.jade.starter.dao"
-       alias="jade.dataSource.xyz.kail.sharing.rose.jade.repo.dao"/>
 
 
 </beans>
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!---->
+        <!--<alias name="jade.dataSource.xyz.kail.sharing.rose.jade.starter.dao"-->
+        <!--       alias="jade.dataSource.xyz.kail.sharing.rose.jade.repo.dao"/>-->

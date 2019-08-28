@@ -5,7 +5,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>xyz.kai.demo.sharing</groupId>
+    <groupId>xyz.kail.demo.sharing</groupId>
     <artifactId>sharing-rose-jade-repo</artifactId>
     <version>1.0.0</version>
 
@@ -44,6 +44,19 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
+
+            <!--<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Rose>*</Rose>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>-->
 
         </plugins>
     </build>
