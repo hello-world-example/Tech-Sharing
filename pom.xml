@@ -10,7 +10,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>sharing-rose-jade</module>
+        <!-- 2019-08-28 分享 -->
+        <!--<module>sharing-rose-jade</module>-->
     </modules>
 
     <properties>
