@@ -13,7 +13,9 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>sharing-component-rose-web</module>
+        <module>sharing-component-rose</module>
+        <module>sharing-component-boot</module>
+        <module>sharing-component-demo</module>
     </modules>
 
     <dependencyManagement>
