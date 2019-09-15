@@ -23,11 +23,12 @@ import net.paoding.rose.web.impl.thread.Rose;
 import net.paoding.rose.web.instruction.InstructionExecutor;
 import net.paoding.rose.web.instruction.InstructionExecutorImpl;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.core.SpringVersion;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
@@ -39,7 +40,10 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @Configuration
 public class RoseConfig extends WebMvcConfigurerAdapter {
@@ -48,12 +52,16 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
     @Bean
     @Primary
     public FilterRegistrationBean roseFilter() {
+        final RoseBootFilter roseBootFilter = new RoseBootFilter();
+        // 设置忽略的链接
+        roseBootFilter.setIgnoredPaths(new String[]{"noting"});
+        roseBootFilter.setLoad("xyz.kail.sharing.component.rose.starter.controllers");
+
         final FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
         filterRegistrationBean.setFilter(new RoseBootFilter());
         filterRegistrationBean.setName("roseFilter");
         filterRegistrationBean.setUrlPatterns(Collections.singletonList("/*"));
         filterRegistrationBean.setDispatcherTypes(DispatcherType.REQUEST, DispatcherType.FORWARD, DispatcherType.INCLUDE);
-        filterRegistrationBean.setOrder(1);
         return filterRegistrationBean;
     }
 
@@ -63,7 +71,7 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
      */
     public static class RoseBootFilter extends GenericFilterBean {
 
-        private static final String ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE = WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE;
+        private static final Logger LOGGER = LoggerFactory.getLogger(RoseBootFilter.class);
 
         private InstructionExecutor instructionExecutor = new InstructionExecutorImpl();
 
@@ -79,68 +87,64 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
 
         private IgnoredPath[] ignoredPaths = new IgnoredPath[]{
                 new IgnoredPathStarts(RoseConstants.VIEWS_PATH_WITH_END_SEP),
-                new IgnoredPathEquals("/favicon.ico")};
+                new IgnoredPathEquals("/favicon.ico")
+        };
 
-        public void setInstructionExecutor(InstructionExecutor instructionExecutor) {
-            this.instructionExecutor = instructionExecutor;
-        }
-
-        public void setModuleResourceProviderClass(Class<? extends ModuleResourceProvider> moduleResourceProviderClass) {
-            this.moduleResourceProviderClass = moduleResourceProviderClass;
-        }
-
-        public void setModulesBuilderClass(Class<? extends ModulesBuilder> modulesBuilderClass) {
-            this.modulesBuilderClass = modulesBuilderClass;
-        }
 
         /**
          * <pre>
          * like: &quot;com.renren.myapp, com.renren.yourapp&quot; etc
          * </pre>
-         *
-         * @param load
          */
         public void setLoad(String load) {
             this.load = new LoadScope(load, "controllers");
         }
 
         /**
-         * @param ignoredPathStrings
+         * 支持 正则、前缀、后缀、等值
+         *
          * @see #quicklyPass(RequestPath)
          */
         public void setIgnoredPaths(String[] ignoredPathStrings) {
             List<IgnoredPath> list = new ArrayList<>(ignoredPathStrings.length + 2);
+
             for (String ignoredPath : ignoredPathStrings) {
                 ignoredPath = ignoredPath.trim();
                 if (StringUtils.isEmpty(ignoredPath)) {
                     continue;
                 }
+                // 忽略所有
                 if (ignoredPath.equals("*")) {
                     list.add(new IgnoredPathEquals(""));
                     list.add(new IgnoredPathStarts("/"));
                     break;
                 }
+                // 忽略匹配到的正则表达式
                 if (ignoredPath.startsWith("regex:")) {
                     list.add(new IgnoredPathRegexMatch(ignoredPath.substring("regex:".length())));
                 } else {
-                    if (ignoredPath.length() > 0 && !ignoredPath.startsWith("/")
-                            && !ignoredPath.startsWith("*")) {
+                    // 补全分隔符
+                    if (ignoredPath.length() > 0 && !ignoredPath.startsWith("/") && !ignoredPath.startsWith("*")) {
                         ignoredPath = "/" + ignoredPath;
                     }
                     if (ignoredPath.endsWith("*")) {
-                        list.add(new IgnoredPathStarts(ignoredPath.substring(0,
-                                ignoredPath.length() - 1)));
+                        // 前缀匹配
+                        list.add(new IgnoredPathStarts(ignoredPath.substring(0, ignoredPath.length() - 1)));
                     } else if (ignoredPath.startsWith("*")) {
+                        // 后缀匹配
                         list.add(new IgnoredPathEnds(ignoredPath.substring(1)));
                     } else {
+                        // 等值匹配
                         list.add(new IgnoredPathEquals(ignoredPath));
                     }
                 }
             }
+
             IgnoredPath[] ignoredPaths = Arrays.copyOf(this.ignoredPaths, this.ignoredPaths.length + list.size());
             for (int i = this.ignoredPaths.length; i < ignoredPaths.length; i++) {
                 ignoredPaths[i] = list.get(i - this.ignoredPaths.length);
             }
+
             this.ignoredPaths = ignoredPaths;
         }
 
@@ -148,62 +152,25 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
          * 实现 {@link GenericFilterBean#initFilterBean()}，对 Rose 进行初始化
          */
         @Override
-        protected final void initFilterBean() throws ServletException {
+        protected void initFilterBean() throws ServletException {
             try {
 
                 long startTime = System.currentTimeMillis();
 
-                if (logger.isInfoEnabled()) {
-                    logger.info("[init] call 'init/rootContext'");
-                }
-
-                if (logger.isDebugEnabled()) {
-                    StringBuilder sb = new StringBuilder();
-                    @SuppressWarnings("unchecked")
-                    Enumeration<String> iter = getFilterConfig().getInitParameterNames();
-                    while (iter.hasMoreElements()) {
-                        String name = iter.nextElement();
-                        sb.append(name).append("='").append(getFilterConfig().getInitParameter(name)).append("'\n");
-                    }
-                    logger.debug("[init] parameters: " + sb);
-                }
-
-                // TODO
-                WebApplicationContext rootContext = (WebApplicationContext) getServletContext().getAttribute(ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-
-                if (logger.isInfoEnabled()) {
-                    logger.info("[init] exits from 'init/rootContext'");
-                    logger.info("[init] call 'init/module'");
-                }
-
-                // 识别 Rose 程序模块
-                this.modules = prepareModules(rootContext);
-
-                if (logger.isInfoEnabled()) {
-                    logger.info("[init] exits from 'init/module'");
-                    logger.info("[init] call 'init/mappingTree'");
-                }
-
-                // 创建匹配树以及各个结点的上的执行逻辑(Engine)
-                this.mappingTree = prepareMappingTree(modules);
-
-                if (logger.isInfoEnabled()) {
-                    logger.info("[init] exits from 'init/mappingTree'");
-                    logger.info("[init] exits from 'init'");
-                }
+                //
+                this.initRose();
 
                 long endTime = System.currentTimeMillis();
 
-                // 打印启动信息
+                // 【3】打印启动信息
                 printRoseInfos(endTime - startTime);
 
-                //
-            } catch (final Throwable e) {
+            } catch (Exception e) {
                 StringBuilder sb = new StringBuilder(1024);
                 sb.append("[Rose-").append(RoseVersion.getVersion());
                 sb.append("@Spring-").append(SpringVersion.getVersion()).append("]:");
                 sb.append(e.getMessage());
-                logger.error(sb.toString(), e);
+                LOGGER.error(sb.toString(), e);
                 throw new NestedServletException(sb.toString(), e);
             }
         }
@@ -218,31 +185,26 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
             final HttpServletRequest httpRequest = (HttpServletRequest) request;
             final HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-            // 打开DEBUG级别信息能看到所有进入RoseFilter的请求
-            if (logger.isDebugEnabled()) {
-                StringBuffer sb = httpRequest.getRequestURL();
-                String query = httpRequest.getQueryString();
-                if (query != null && query.length() > 0) {
-                    sb.append("?").append(query);
-                }
-                logger.debug(httpRequest.getMethod() + " " + sb.toString());
-            }
-
-            supportsRosePipe(httpRequest);
+            //
+            // 【!】删除对 Portal 的支持【!】
+            //
 
             // 创建RequestPath对象，用于记录对地址解析的结果
+            // 1. 如果是 POST 请求，支持通过 _method 参数，修改指定的请求类型
+            // 2. ContextPath
+            // 3. requestPath
             final RequestPath requestPath = new RequestPath(httpRequest);
 
-            //  简单、快速判断本次请求，如果不应由Rose执行，返回true
+            //  简单、快速判断本次请求，如果不应由Rose执行，返回true (IgnoredPaths)
             if (quicklyPass(requestPath)) {
                 notMatched(filterChain, httpRequest, httpResponse, requestPath);
                 return;
             }
 
-            // matched为true代表本次请求被Rose匹配，不需要转发给容器的其他 flter 或 servlet
+            // matched 为 true 代表本次请求被 Rose 匹配，不需要转发给容器的其他 filter 或 servlet
             boolean matched = false;
             try {
-                // rose 对象代表Rose框架对一次请求的执行：一朵玫瑰出墙来
+                // rose 对象代表 Rose 框架对一次请求的执行：一朵玫瑰出墙来
                 final Rose rose = new Rose(modules, mappingTree, httpRequest, httpResponse, requestPath);
 
                 // 对请求进行匹配、处理、渲染以及渲染后的操作，如果找不到映配则返回false
@@ -258,67 +220,83 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
             }
         }
 
-        // @see net.paoding.rose.web.portal.impl.PortalWaitInterceptor#waitForWindows
-        protected void supportsRosePipe(final HttpServletRequest httpRequest) {
-            // 这个代码为rosepipe所用，以避免rosepipe的"Cannot forward after response has been committed"异常
-            // @see net.paoding.rose.web.portal.impl.PortalWaitInterceptor
-            Object window = httpRequest.getAttribute(RoseConstants.WINDOW_ATTR);
-            if (window != null && window.getClass().getName().startsWith("net.paoding.rose.web.portal")) {
-                httpRequest.setAttribute(RoseConstants.PIPE_WINDOW_IN, Boolean.TRUE);
-                if (logger.isDebugEnabled()) {
-                    try {
-                        logger.debug("notify window '"
-                                + httpRequest.getAttribute("$$paoding-rose-portal.window.name") + "'");
-                    } catch (Exception e) {
-                        logger.error("", e);
-                    }
-                }
-                synchronized (window) {
-                    window.notifyAll();
-                }
+
+        protected void initRose() throws Exception {
+            /**
+             * 【0】 构建 WebApplicationContext
+             *  @see net.paoding.rose.scanning.context.RoseWebAppContext
+             */
+            WebApplicationContext rootContext = WebApplicationContextUtils.getRequiredWebApplicationContext(getServletContext());
+
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init] call 'init/module'");
+            }
+
+            // 【1】识别 Rose 程序模块
+            this.modules = prepareModules(rootContext);
+
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init] exits from 'init/module'");
+                LOGGER.info("[init] call 'init/mappingTree'");
+            }
+
+            // 【2】创建匹配树以及各个结点的上的执行逻辑(Engine)
+            this.mappingTree = prepareMappingTree(modules);
+
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init] exits from 'init/mappingTree'");
+                LOGGER.info("[init] exits from 'init'");
             }
         }
 
-
+        /**
+         * 【1】自动扫描识别 Web 层资源，纳入 Rose 管理
+         */
         private List<Module> prepareModules(WebApplicationContext rootContext) throws Exception {
-            // 自动扫描识别web层资源，纳入Rose管理
-            if (logger.isInfoEnabled()) {
-                logger.info("[init/mudule] starting ...");
+
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init/mudule] starting ...");
             }
 
             ModuleResourceProvider provider = moduleResourceProviderClass.newInstance();
 
-            if (logger.isInfoEnabled()) {
-                logger.info("[init/module] using provider: " + provider);
-                logger.info("[init/module] call 'moduleResource': to find all module resources.");
-                logger.info("[init/module] load " + load);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init/module] using provider: {}", provider);
+                LOGGER.info("[init/module] call 'moduleResource': to find all module resources.");
+                LOGGER.info("[init/module] load {}", load);
             }
+
+            // 找资源（controllers），详见返回值 注释
             List<ModuleResource> moduleResources = provider.findModuleResources(load);
 
-            if (logger.isInfoEnabled()) {
-                logger.info("[init/mudule] exits 'moduleResource'");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init/mudule] exits 'moduleResource'");
             }
 
             ModulesBuilder modulesBuilder = modulesBuilderClass.newInstance();
 
-            if (logger.isInfoEnabled()) {
-                logger.info("[init/module] using modulesBuilder: " + modulesBuilder);
-                logger.info("[init/module] call 'moduleBuild': to build modules.");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init/module] using modulesBuilder: {}", modulesBuilder);
+                LOGGER.info("[init/module] call 'moduleBuild': to build modules.");
             }
 
             List<Module> modules = modulesBuilder.build(moduleResources, rootContext);
 
-            if (logger.isInfoEnabled()) {
-                logger.info("[init/module] exits from 'moduleBuild'");
-                logger.info("[init/mudule] found " + modules.size() + " modules.");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("[init/module] exits from 'moduleBuild'");
+                LOGGER.info("[init/module] found {} modules.", modules.size());
             }
 
             return modules;
         }
 
+        /**
+         * 【2】
+         */
         private MappingNode prepareMappingTree(List<Module> modules) {
             Mapping rootMapping = new ConstantMapping("");
             MappingNode mappingTree = new MappingNode(rootMapping);
+
             LinkedEngine rootEngine = new LinkedEngine(null, new RootEngine(instructionExecutor), mappingTree);
             mappingTree.getMiddleEngines().addEngine(ReqMethod.ALL, rootEngine);
 
@@ -340,43 +318,22 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
             return false;
         }
 
-        @Override
-        public void destroy() {
-            WebApplicationContext rootContext = WebApplicationContextUtils.getWebApplicationContext(getServletContext());
-            if (rootContext != null) {
-                try {
-                    if (rootContext instanceof AbstractApplicationContext) {
-                        // rose.root
-                        ((AbstractApplicationContext) rootContext).close();
-                    }
-                } catch (Throwable e) {
-                    logger.error("", e);
-                    getServletContext().log("", e);
-                }
+        /**
+         * Rose 本身没有匹配到时，调用其它 Filter
+         */
+        protected void notMatched(FilterChain chain, HttpServletRequest req, HttpServletResponse resp, RequestPath path) throws IOException, ServletException {
+
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("not rose uri: {}", path.getUri());
             }
 
-            try {
-                mappingTree.destroy();
-            } catch (Throwable e) {
-                logger.error("", e);
-                getServletContext().log("", e);
-            }
-
-            super.destroy();
+            // 调用其它 Filter
+            chain.doFilter(req, resp);
         }
 
-        protected void notMatched(FilterChain filterChain, //
-                                  HttpServletRequest httpRequest,//
-                                  HttpServletResponse httpResponse,//
-                                  RequestPath path) throws IOException, ServletException {
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("not rose uri: " + path.getUri());
-            }
-            // 调用其它Filter
-            filterChain.doFilter(httpRequest, httpResponse);
-        }
-
+        /**
+         * 构建并抛出 ServletException
+         */
         private void throwServletException(RequestPath requestPath, Throwable exception) throws ServletException {
             String msg = requestPath.getMethod() + " " + requestPath.getUri();
             ServletException servletException;
@@ -385,15 +342,21 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
             } else {
                 servletException = new NestedServletException(msg, exception);
             }
-            logger.error(msg, exception);
+            LOGGER.error(msg, exception);
+
+            // 【!】【!】
             getServletContext().log(msg, exception);
+
             throw servletException;
         }
 
+        /**
+         * 打印 Rose 信息
+         */
         private void printRoseInfos(long initTimeCost) {
-            if (logger.isDebugEnabled()) {
-                logger.debug(PrinteHelper.dumpModules(modules));
-                logger.debug("mapping tree:\n" + PrinteHelper.list(mappingTree));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(PrinteHelper.dumpModules(modules));
+                LOGGER.debug("mapping tree:{} ", PrinteHelper.list(mappingTree));
             }
 
             String msg = String.format(
@@ -402,10 +365,25 @@ public class RoseConfig extends WebMvcConfigurerAdapter {
                     initTimeCost,
                     RoseVersion.getVersion());
 
-            logger.info(msg);
+            LOGGER.info(msg);
 
             getServletContext().log(msg);
         }
+
+
+        @Override
+        public void destroy() {
+
+            try {
+                mappingTree.destroy();
+            } catch (Exception e) {
+                LOGGER.error("", e);
+                getServletContext().log("", e);
+            }
+
+            super.destroy();
+        }
+
     }
 
 
