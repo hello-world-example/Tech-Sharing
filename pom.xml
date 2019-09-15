@@ -14,6 +14,7 @@
         <!--<module>sharing-rose-jade</module>-->
         <!-- 2019-09-18 分享 -->
         <module>sharing-component</module>
+        <module>test-rose</module>
     </modules>
 
     <properties>
