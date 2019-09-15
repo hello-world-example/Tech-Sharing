@@ -1,4 +1,4 @@
-package xyz.kail.sharing.component.rose.starter.controllers;
+package xyz.kail.sharing.rose.starter.controllers;
 
 import net.paoding.rose.web.annotation.Path;
 import net.paoding.rose.web.annotation.rest.Get;

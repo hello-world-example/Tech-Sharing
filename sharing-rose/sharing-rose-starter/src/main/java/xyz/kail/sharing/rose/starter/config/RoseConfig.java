@@ -1,4 +1,4 @@
-package xyz.kail.sharing.component.rose.starter.config;
+package xyz.kail.sharing.rose.starter.config;
 
 import net.paoding.rose.RoseConstants;
 import net.paoding.rose.RoseVersion;

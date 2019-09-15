@@ -1,4 +1,4 @@
-package xyz.kail.sharing.component.rose.starter.controller;
+package xyz.kail.sharing.rose.starter.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

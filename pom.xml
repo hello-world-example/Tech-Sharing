@@ -14,8 +14,10 @@
         <!--<module>sharing-rose-jade</module>-->
         <!-- 2019-09-18 分享 -->
         <module>sharing-component</module>
-        <module>test-rose</module>
+        <!-- 后续 分享 -->
+        <module>sharing-rose</module>
     </modules>
+
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
