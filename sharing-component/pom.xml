@@ -16,6 +16,7 @@
         <module>sharing-component-rose</module>
         <module>sharing-component-boot</module>
         <module>sharing-component-demo</module>
+        <module>sharing-component-mvc</module>
     </modules>
 
     <dependencyManagement>

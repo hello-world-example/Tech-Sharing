@@ -31,6 +31,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>xyz.kail.demo.sharing</groupId>
+            <artifactId>sharing-component-demo</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
 
     </dependencies>
 
