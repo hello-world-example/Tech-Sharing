@@ -4,6 +4,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import(SharingRepoConfig.class)
+//@Import(SharingRepoConfig.class)
 public class DaoConfig {
 }

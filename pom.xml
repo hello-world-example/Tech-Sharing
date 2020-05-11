@@ -11,9 +11,9 @@
 
     <modules>
         <!-- 2019-08-28 分享 -->
-        <!--<module>sharing-rose-jade</module>-->
+        <module>sharing-rose-jade</module>
         <!-- 2019-09-18 分享 -->
-        <module>sharing-component</module>
+        <!--<module>sharing-component</module>-->
         <!-- 后续 分享 -->
         <!--<module>sharing-rose</module>-->
     </modules>
